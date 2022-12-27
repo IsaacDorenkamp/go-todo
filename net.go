@@ -104,7 +104,6 @@ func RootTodo(req *http.Request, params []string) *Response {
 				}
 			}
 
-			// TODO: Stupidly ignoring marshal error.
 			content := map[string]any {
 				"entity": todo,
 				"message": "Todo successfully created.",
@@ -292,6 +291,14 @@ func TodoEntity(req *http.Request, params []string) *Response {
 	}
 }
 
+func FrontEnd(req *http.Request, _ []string) *Response {
+
+}
+
+func StaticServe(req *http.Request, _ []string) *Response {
+	
+}
+
 // Route Definitions
 var Root []Route
 func SetupRoutes() error {
@@ -304,9 +311,21 @@ func SetupRoutes() error {
 		return err
 	}
 
+	base, err := regexp.Compile("^/$")
+	if err != nil {
+		return err
+	}
+
+	static, err := regexp.Compile("^/static/(.+)$")
+	if err != nil {
+		return err
+	}
+
 	Root = []Route {
 		Route { path: todo_base, handler: RootTodo },
 		Route { path: todo_entity, handler: TodoEntity },
+		// Route { path: base, handler: FrontEnd },
+		Route { path: static, handler: StaticServe }
 	}
 
 	return nil

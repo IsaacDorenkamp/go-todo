@@ -16,3 +16,6 @@
 
 # The binary
 go-todo
+
+# Installed Packages
+node_modules
