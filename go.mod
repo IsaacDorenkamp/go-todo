@@ -1,4 +1,4 @@
-module github.com/QuantumIsaac/go-project
+module github.com/IsaacDorenkamp/go-todo
 
 go 1.19
 
