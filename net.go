@@ -326,8 +326,10 @@ func ResolveRequest(routes []Route, w http.ResponseWriter, req *http.Request) *R
 	}
 
 	if match == nil {
+		log.Printf("Could not resolve path: %v", path)
 		return nil
 	} else {
+		log.Printf("%v %v", req.Method, path)
 		return handler(req, match[1:])
 	}
 }

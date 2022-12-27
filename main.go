@@ -69,7 +69,7 @@ func run_test() {
 	test_db()
 }
 
-func run_main() {
+func run_main(port int) {
 	setup_db(false)
 	defer cleanup_db(false)
 
@@ -78,8 +78,9 @@ func run_main() {
 		log.Fatal(err)
 	}
 
-	server := CreateServer(8080)
-	log.Fatal(server.ListenAndServe())
+	server := CreateServer(port)
+	log.Printf("Listening on port %v!\n", port)
+	server.ListenAndServe()
 }
 
 func main() {
@@ -94,7 +95,7 @@ func main() {
 	case "test":
 		run_test()
 	case "main":
-		run_main()
+		run_main(8080)
 	default:
 		log.Fatal(fmt.Sprintf("Invalid mode '%v'", mode))
 	}
