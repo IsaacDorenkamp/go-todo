@@ -1,0 +1,120 @@
+.App {
+  text-align: center;
+
+  font-family: "Tahoma", sans-serif;
+}
+
+hr {
+  border: none;
+  height: 1px;
+  background-color: black;
+  width: 300px;
+
+  margin-bottom: 21px;
+}
+
+h1 {
+  font-weight: normal;
+}
+
+ul.todo-list {
+  border-radius: 7px;
+  border: 1px solid #ccc;
+  list-style-type: none;
+  margin: 0 auto;
+  max-width: 300px;
+  padding: 0;
+
+  text-align: left;
+  overflow: hidden;
+}
+
+ul.todo-list > li:not(.add-prompt) {
+  padding: 5px;
+
+  display: flex;
+  flex-direction: row;
+}
+
+ul.todo-list > li.add-prompt {
+  text-align: center;
+  padding: 5px;
+}
+
+ul.todo-list > li.add-prompt > button.create {
+  text-decoration: underline;
+  font-size: 10pt;
+}
+
+ul.todo-list > li.deleted > span.task {
+  text-decoration: line-through;
+  color: #aaa;
+}
+
+ul.todo-list > li > span.space {
+  flex-grow: 1;
+}
+
+ul.todo-list > li:nth-child(odd) {
+  background-color: #eee;
+}
+
+ul.todo-list > li > input {
+  margin-right: 10px;
+}
+
+button.inline {
+  color: #777;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14pt;
+  text-decoration: none;
+}
+
+button.delete:active {
+  color: red;
+}
+
+button.edit:active {
+  color: #c90;
+}
+
+button.inline[disabled] {
+  cursor: default;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

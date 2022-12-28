@@ -1,31 +1,43 @@
 Go To-Do
 ========
 
-This simple Go project can be run in one simple line:
+Startup
+-------
+
+To build the project, simply run the following commands:
 
 ```
-$ go run .
-```
-
-If you wish to build a binary first, you can do the following instead:
-
-```
+$ npm run build
 $ go build
-$ ./go-todo
 ```
 
-Tests
------
+Then, simply run `$ ./go-todo` and you will be able to access the UI by navigating
+to `localhost:8080` in your browser!
 
-To run this project's testing mode (just some simple tests of the database model operations), you can run the project with the command-line argument `test`:
+Development
+-----------
+
+This project is capable of taking advantage of create-react-app's hot loading
+feature. In order to do this, however, you will have to pass an argument into
+the Go process to instruct it to run a little differently:
 
 ```
-$ go run . test
+$ go run . dev
 ```
 
-or
+or, if using the binary,
 
 ```
-$ go build
-$ ./go-todo test
+$./go-todo dev
 ```
+
+Then you can use `$ npm start` to run the development server for create-react-app as usual.
+To build the React app for static, "production ready" serving, use `$ npm run build`.
+
+If you are wondering what the difference is between the "normal" mode of the server and the
+"dev" mode, it is simply a discrepancy caused by cross-origin requests. Even though the React
+server and the Go REST API are running on the same host, the difference in ports causes them
+to be treated as different origins, and as such, there are heavy restrictions on the API requests
+that cause them to fail. The "dev" mode adds headers to all responses that suppress these errors,
+but should not be used in a production mode. Although this app is small and doesn't have complex
+architecture, it is still good to try to follow best practices!

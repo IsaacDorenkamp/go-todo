@@ -4,22 +4,30 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 	"regexp"
 	"encoding/json"
+	"path/filepath"
 	"strconv"
+	"strings"
 )
 
-type TodoServer struct {}
+type TodoServer struct {
+	port int
+	isDevelopment bool
+}
 
 type Response struct {
 	status int
 	content []byte
+	headers map[string]string
 }
 
 type Route struct {
 	path *regexp.Regexp
 	handler func(req *http.Request, params []string) *Response
+	defaultContentType string
 }
 
 func create_json(data map[string]string) []byte {
@@ -292,15 +300,75 @@ func TodoEntity(req *http.Request, params []string) *Response {
 }
 
 func FrontEnd(req *http.Request, _ []string) *Response {
-
+	return &Response {
+		status: 200,
+		content: AppPage,
+	}
 }
 
-func StaticServe(req *http.Request, _ []string) *Response {
-	
+func StaticServe(req *http.Request, params []string) *Response {
+	var subpath string
+	if len(params) == 1 {
+		subpath = params[0]
+	} else {
+		return &Response {
+			status: 400,
+			content: []byte("No subpath provided!"),
+		}
+	}
+
+	fullpath, err := filepath.Abs(filepath.Join("./build/static", subpath))
+	if err != nil {
+		return &Response {
+			status: 500,
+			content: []byte("Internal Server Error"),
+		}
+	}
+
+	pieces := strings.Split(fullpath, ".")
+	extension := pieces[len(pieces) - 1]
+	mime, ok := MimeTypes[extension]
+	if !ok {
+		mime = "text/plain"
+	}
+
+	if !strings.HasPrefix(fullpath, StaticRoot) {
+		return &Response {
+			status: 400,
+			content: []byte("Directory transversal disallowed."),
+		}
+	} else {
+		data, err := os.ReadFile(fullpath)
+		if err != nil {
+			return &Response {
+				status: 404,
+				content: []byte("Not Found"),
+			}
+		} else {
+			return &Response {
+				status: 200,
+				content: data,
+				headers: map[string]string {
+					"Content-type": mime,
+				},
+			}
+		}
+	}
 }
 
 // Route Definitions
 var Root []Route
+var StaticRoot string
+var AppPage []byte
+var MimeTypes = map[string]string {
+	"js": "text/javascript",
+	"css": "text/css",
+	"html": "text/html",
+	"png": "image/png",
+	"jpg": "image/jpeg",
+	"jpeg": "image/jpeg",
+	"svg": "image/svg+xml",
+}
 func SetupRoutes() error {
 	todo_base, err := regexp.Compile("^/todo$")
 	if err != nil {
@@ -321,25 +389,44 @@ func SetupRoutes() error {
 		return err
 	}
 
+	StaticRoot, err = filepath.Abs("./build/static")
+	if err != nil {
+		return err
+	}
+
+	// Load application page into memory for efficiency
+	AppPage, err = os.ReadFile("./build/index.html")
+	if err != nil {
+		return err
+	}
+
 	Root = []Route {
-		Route { path: todo_base, handler: RootTodo },
-		Route { path: todo_entity, handler: TodoEntity },
-		// Route { path: base, handler: FrontEnd },
-		Route { path: static, handler: StaticServe }
+		Route { path: todo_base, handler: RootTodo, defaultContentType: "application/json" },
+		Route { path: todo_entity, handler: TodoEntity, defaultContentType: "application/json" },
+		Route { path: base, handler: FrontEnd },
+		Route { path: static, handler: StaticServe },
 	}
 
 	return nil
 }
 
 func ResolveRequest(routes []Route, w http.ResponseWriter, req *http.Request) *Response {
+	// First, check if we are dealing with an OPTIONS request and send appropriate response if so
+	if req.Method == "OPTIONS" {
+		return &Response {
+			status: 204,
+			content: []byte(""),
+		}
+	}
+
 	path := req.URL.Path
 
-	var handler func(req *http.Request, params []string) *Response
+	var handlerRoute Route
 	var match []string
 	for _, candidate := range routes {
 		match = candidate.path.FindStringSubmatch(path)
 		if match != nil {
-			handler = candidate.handler
+			handlerRoute = candidate
 			break
 		}
 	}
@@ -349,7 +436,25 @@ func ResolveRequest(routes []Route, w http.ResponseWriter, req *http.Request) *R
 		return nil
 	} else {
 		log.Printf("%v %v", req.Method, path)
-		return handler(req, match[1:])
+		result := handlerRoute.handler(req, match[1:])
+
+		// In a more generalized framework, care should be taken
+		// to check for any case-variation of "Content-type", but
+		// for this use-case, I can use much more efficient code
+		// by simply following the convention of using "Content-type"
+		// throughout the application where applicable.
+		_, hasContentType := result.headers["Content-type"]
+		if !hasContentType && handlerRoute.defaultContentType != "" {
+			if result.headers == nil {
+				result.headers = map[string]string {
+					"Content-type": handlerRoute.defaultContentType,
+				}
+			} else {
+				result.headers["Content-type"] = handlerRoute.defaultContentType
+			}
+		}
+
+		return result
 	}
 }
 
@@ -359,6 +464,18 @@ func (server *TodoServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		response = &Response{ status: 404, content: []byte("Not Found"), }
 	}
 
+	for key, value := range response.headers {
+		w.Header().Set(key, value)
+	}
+
+	// Useful when testing with React dev server to allow
+	// cross-origin requests from localhost:3000 to localhost:8080
+	if server.isDevelopment {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT")
+	}
+
 	w.WriteHeader(response.status)
 	_, err := w.Write(response.content)
 	if err != nil {
@@ -366,8 +483,8 @@ func (server *TodoServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func CreateServer(port int) *http.Server {
-	handler := &TodoServer{}
+func CreateServer(port int, isDevelopment bool) *http.Server {
+	handler := &TodoServer{ port, isDevelopment }
 	server := &http.Server {
 		Addr: fmt.Sprintf(":%v", port),
 		Handler: handler,
