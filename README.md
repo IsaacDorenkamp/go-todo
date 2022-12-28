@@ -4,9 +4,10 @@ Go To-Do
 Startup
 -------
 
-To build the project, simply run the following commands:
+To build the project, simply run the following commands in the project directory:
 
 ```
+$ npm install
 $ npm run build
 $ go build
 ```
